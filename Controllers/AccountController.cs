@@ -14,8 +14,9 @@ namespace DotNetCoreSqlDb.Controllers
             var samlEndpoint = "https://tnia.identita.gov.cz/FPSTS/saml2/basic";
 
             var request = new AuthRequest(
-                "DotNetCoreSqlDb",
-                "https://opulent-potato-69pxr5p4rjp2rwv6-5093.app.github.dev/Account/SamlConsume"
+                // Issuer, neboli "Unikátní URL adresa zabezpečené části Vašeho webu"
+                "https://msdocs-core-sql-674-g4b8bgf8e5e3h0bh.westeurope-01.azurewebsites.net/Home/Secured",
+                "https://msdocs-core-sql-674-g4b8bgf8e5e3h0bh.westeurope-01.azurewebsites.net/Account/SamlConsume"
             );
 
             //now send the user to the SAML provider
