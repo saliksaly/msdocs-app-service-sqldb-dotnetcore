@@ -1,4 +1,5 @@
 using DotNetCoreSqlDb.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
@@ -19,6 +20,12 @@ namespace DotNetCoreSqlDb.Controllers
         }
 
         public IActionResult Privacy()
+        {
+            return View();
+        }
+
+        [Authorize]
+        public IActionResult Secured()
         {
             return View();
         }

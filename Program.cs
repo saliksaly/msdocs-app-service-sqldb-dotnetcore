@@ -24,6 +24,15 @@ else
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+// Add cookie authentication
+builder.Services.AddAuthentication("CookieAuthentication")
+    .AddCookie("CookieAuthentication", options =>
+    {
+        options.Cookie.Name = "UserLoginCookie";
+        options.LoginPath = "/Account/NiaLogin";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+    });
+
 // Add App Service logging
 builder.Logging.AddAzureWebAppDiagnostics();
 
