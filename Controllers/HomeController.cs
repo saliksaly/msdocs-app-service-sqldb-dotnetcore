@@ -1,4 +1,6 @@
 using DotNetCoreSqlDb.Models;
+using DotNetCoreSqlDb.Models.Home;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
@@ -25,9 +27,13 @@ namespace DotNetCoreSqlDb.Controllers
         }
 
         [Authorize]
-        public IActionResult Secured()
+        public async Task<IActionResult> Secured()
         {
-            return View();
+            var authResult = await HttpContext.AuthenticateAsync();
+
+            var model = new SecuredModel(authResult.Properties!.Items, authResult.Principal!.Claims);
+
+            return View(model);
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
