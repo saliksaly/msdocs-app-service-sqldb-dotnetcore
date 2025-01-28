@@ -31,6 +31,7 @@ jobs:
         run: dotnet tool install --global dotnet-ef --version 8.*
 
       - name: Create migrations bundle
+        run: dotnet tool restore
         run: dotnet ef migrations bundle -o "${{env.DOTNET_ROOT}}/myapp/migrationsbundle.exe"      
 
       - name: Upload artifact for deployment job
