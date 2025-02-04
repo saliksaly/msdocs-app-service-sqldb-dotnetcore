@@ -30,8 +30,10 @@ jobs:
       - name: Install dotnet ef
         run: dotnet tool install --global dotnet-ef --version 8.*
 
-      - name: Create migrations bundle
+      - name: dotnet tool restore
         run: dotnet tool restore
+        
+      - name: Create migrations bundle
         run: dotnet ef migrations bundle -o "${{env.DOTNET_ROOT}}/myapp/migrationsbundle.exe"      
 
       - name: Upload artifact for deployment job
