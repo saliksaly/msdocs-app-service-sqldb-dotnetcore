@@ -25,4 +25,10 @@
     <Folder Include="Models\Home\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="app.pfx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
