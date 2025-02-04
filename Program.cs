@@ -1,10 +1,13 @@
-﻿using DotNetCoreSqlDb.Data;
+﻿using System.Security.Claims;
+using DotNetCoreSqlDb.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Sustainsys.Saml2;
 using Sustainsys.Saml2.AspNetCore2;
 using Sustainsys.Saml2.Metadata;
 using System.Security.Cryptography.X509Certificates;
+using DotNetCoreSqlDb.Controllers;
+using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,20 +29,22 @@ else
     // });
 }
 
+// Add Identity
+builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+    {
+        options.Password.RequireDigit = true;
+        options.Password.RequiredLength = 6;
+        options.Password.RequireNonAlphanumeric = false;
+    })
+    .AddEntityFrameworkStores<MyDatabaseContext>()
+    .AddDefaultTokenProviders();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-builder.Services.AddAuthentication(opt =>
-    {
-        // Default scheme that maintains session is cookies.
-        opt.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-
-        // If there's a challenge to sign in, use the Saml2 scheme.
-        opt.DefaultChallengeScheme = Saml2Defaults.Scheme;
-    })
-    .AddCookie()
-    .AddSaml2(opt =>
+builder.Services.AddAuthentication()
+    //.AddCookie()
+    .AddSaml2("NIA", opt =>
     {
         // Set up our EntityId, this is our application.
         //opt.SPOptions.EntityId = new EntityId("http://localhost:5093/Saml2");
@@ -50,23 +55,61 @@ builder.Services.AddAuthentication(opt =>
         opt.SPOptions.ServiceCertificates.Add(new X509Certificate2("app.pfx"));
 
         // Add an identity provider.
-        opt.IdentityProviders.Add(new IdentityProvider(
-            // The identityprovider's entity id.
-            new EntityId("https://stubidp.sustainsys.com/Metadata"), // https://tnia.identitaobcana.cz/fpsts/FederationMetadata/2007-06/FederationMetadata.xml
-            opt.SPOptions)
+        opt.IdentityProviders.Add(
+            new IdentityProvider(
+                // The identityprovider's entity id.
+                //new EntityId("https://stubidp.sustainsys.com/Metadata"),
+                new EntityId(
+                    // SusitainSys:
+                    "https://stubidp.sustainsys.com/Metadata"),
+                // NIA testovací:
+                //"https://tnia.identitaobcana.cz/fpsts/FederationMetadata/2007-06/FederationMetadata.xml"),
+                // NIA produkční:
+                // https://nia.identitaobcana.cz/fpsts/FederationMetadata/2007-06/FederationMetadata.xml"),
+                opt.SPOptions)
+            {
+                // Load config parameters from metadata, using the Entity Id as the metadata address.
+                LoadMetadata = true,
+
+                //SingleSignOnServiceUrl = null,
+                //SingleLogoutServiceUrl = null,
+                //SingleLogoutServiceResponseUrl = null,
+                //SingleLogoutServiceBinding = (Saml2BindingType)0,
+
+                //MetadataLocation = null,
+                //RelayStateUsedAsReturnUrl = false,
+                //WantAuthnRequestsSigned = false, // v produkci ano?
+            });
+
+        // Transform claims using a callback/notification. This is the simplest way to transform
+        // claims, but there is no way to show UI and there is no access to other services.
+        // Inspired here: https://github.com/Sustainsys/Saml2.Samples/blob/main/v2/AspNetCoreClaimsTransformation/Program.cs
+        opt.Notifications.AcsCommandResultCreated = (commandResult, response) =>
         {
-            // Load config parameters from metadata, using the Entity Id as the metadata address.
-            LoadMetadata = true,
+            ClaimsIdentity identity = commandResult.Principal.Identities.Single();
 
-            //SingleSignOnServiceUrl = null,
-            //SingleLogoutServiceUrl = null,
-            //SingleLogoutServiceResponseUrl = null,
-            //SingleLogoutServiceBinding = (Saml2BindingType)0,
+            // We want modern/OIDC-style "sub" claim and not http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier
 
-            //MetadataLocation = null,
-            //RelayStateUsedAsReturnUrl = false,
-            //WantAuthnRequestsSigned = false, // v produkci ano?
-        });
+            Claim nameIdClaim = identity.FindFirst(ClaimTypes.NameIdentifier)
+                                ?? throw new InvalidOperationException("There should always be a NameId in a Saml2 response.");
+
+            identity.AddClaim(
+                new Claim(AccountController.CommonClaimTypes.Subject, nameIdClaim.Value));
+
+            // Email claim
+
+            Claim storkEmailClaim = identity.FindFirst(AccountController.NiaClaimTypes.Email);
+            if (storkEmailClaim != null)
+            {
+                identity.AddClaim(
+                    new Claim(AccountController.CommonClaimTypes.Email, storkEmailClaim.Value));
+            }
+
+            // Also put the somewhat hard to find Idp entity id into a claim by itself.
+
+            identity.AddClaim(
+                new Claim(AccountController.CommonClaimTypes.IdentityProvider, nameIdClaim.Issuer));
+        };
     });
 
 // Add App Service logging

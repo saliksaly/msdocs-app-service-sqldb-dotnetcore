@@ -1,4 +1,8 @@
-﻿@if (User.Identity!.IsAuthenticated)
+﻿@{
+    var returnUrl = Context.Request.Path + Context.Request.QueryString;
+}
+
+@if (User.Identity!.IsAuthenticated)
 {
     <form class="form-inline" asp-controller="Account" asp-action="Logout" method="POST">
         <button type="submit" class="btn btn-link nav-link">Logout</button>
@@ -6,7 +10,9 @@
 }
 else
 {
-    <form class="form-inline" asp-controller="Account" asp-action="Login" method="POST">
+    @* <form class="form-inline" asp-controller="Account" asp-action="Login" method="POST">
         <button type="submit" class="btn btn-link nav-link">Login</button>
-    </form>
+    </form> *@
+
+    <a class="btn btn-link nav-link" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@returnUrl">Login</a>
 }
