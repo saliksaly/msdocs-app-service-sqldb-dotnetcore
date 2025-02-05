@@ -21,10 +21,11 @@ namespace DotNetCoreSqlDb.Controllers
         /// <summary>
         /// Constructor.
         /// </summary>
-        public AccountController(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager)
+        public AccountController(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, LogInManager logInManager)
         {
             _signInManager = signInManager;
             _userManager = userManager;
+            _logInManager = logInManager;
         }
 
         //[HttpGet]
@@ -134,7 +135,7 @@ namespace DotNetCoreSqlDb.Controllers
 
         private async Task<IActionResult> TreatNewExternalLoginAsync(ExternalLoginInfo externalLoginInfo, string returnUrl)
         {
-            bool? canLinkUserByEmail = null;
+            bool? canLinkUserByEmail = true;
 
             if (User.Identity is { IsAuthenticated: true })
             {
@@ -361,12 +362,23 @@ namespace DotNetCoreSqlDb.Controllers
 
         private void AddExternalProviderIdentityToCurrentUser(ExternalLoginInfo externalLoginInfo)
         {
-            throw new NotImplementedException();
+            var claims = new List<Claim>
+            {
+                //new Claim("SomeClaim", "SomeValue")
+            };
+
+            claims.AddRange(externalLoginInfo.Principal.Claims);
+
+            var externalIdentity = new ClaimsIdentity(claims, externalLoginInfo.LoginProvider);
+
+            //appIdentity.AddClaim(new Claim(ClaimTypes.Name, externalLoginInfo.LoginProvider));
+
+            User.AddIdentity(externalIdentity);
         }
 
-        private async Task AddExternalLoginToCurrentUserAsync(IdentityUser user, ExternalLoginInfo externalLoginInfo)
+        private async Task AddExternalLoginToCurrentUserAsync(ApplicationUser user, ExternalLoginInfo externalLoginInfo)
         {
-            throw new NotImplementedException();
+            await _userManager.AddLoginAsync(user , externalLoginInfo);
         }
 
         #endregion

@@ -4,6 +4,8 @@
 
 @if (User.Identity!.IsAuthenticated)
 {
+    <span class="navbar-text">@User.Identity.Name</span>
+
     <form class="form-inline" asp-controller="Account" asp-action="Logout" method="POST">
         <button type="submit" class="btn btn-link nav-link">Logout</button>
     </form>

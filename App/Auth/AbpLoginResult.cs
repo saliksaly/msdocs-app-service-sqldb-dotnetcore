@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using DotNetCoreSqlDb.App.Auth.Entities;
 using Microsoft.AspNetCore.Identity;
 
 namespace DotNetCoreSqlDb.App.Auth;
@@ -9,17 +10,17 @@ public class AbpLoginResult
 
     public string FailReason { get; private set; }
         
-    public IdentityUser User { get; private set; }
+    public ApplicationUser User { get; private set; }
 
     public ClaimsIdentity Identity { get; private set; }
 
-    public AbpLoginResult(AbpLoginResultType result, IdentityUser user = null)
+    public AbpLoginResult(AbpLoginResultType result, ApplicationUser user = null)
     {
         Result = result;
         User = user;
     }
 
-    public AbpLoginResult(IdentityUser user, ClaimsIdentity identity)
+    public AbpLoginResult(ApplicationUser user, ClaimsIdentity identity)
         : this(AbpLoginResultType.Success)
     {
         User = user;

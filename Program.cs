@@ -1,4 +1,5 @@
-﻿using DotNetCoreSqlDb.App.Auth.Entities;
+﻿using DotNetCoreSqlDb.App.Auth;
+using DotNetCoreSqlDb.App.Auth.Entities;
 using DotNetCoreSqlDb.Controllers;
 using DotNetCoreSqlDb.Data;
 using Microsoft.AspNetCore.Identity;
@@ -41,6 +42,10 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     .AddDefaultTokenProviders();
 
 // Add services to the container.
+
+builder.Services.AddScoped<LogInManager>();
+builder.Services.AddScoped<UserClaimsPrincipalFactory<ApplicationUser>>();
+
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddAuthentication()
