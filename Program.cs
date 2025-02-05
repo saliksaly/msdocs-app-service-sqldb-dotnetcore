@@ -1,16 +1,14 @@
-﻿using System.Reflection;
-using System.Security.Claims;
-using System.Security.Cryptography;
+﻿using DotNetCoreSqlDb.App.Auth.Entities;
+using DotNetCoreSqlDb.Controllers;
 using DotNetCoreSqlDb.Data;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Sustainsys.Saml2;
-using Sustainsys.Saml2.AspNetCore2;
 using Sustainsys.Saml2.Metadata;
+using System.Reflection;
+using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
-using System.Xml;
-using DotNetCoreSqlDb.Controllers;
-using Microsoft.AspNetCore.Identity;
+using System.Xml.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,7 +31,7 @@ else
 }
 
 // Add Identity
-builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     {
         options.Password.RequireDigit = true;
         options.Password.RequiredLength = 6;
@@ -50,14 +48,14 @@ builder.Services.AddAuthentication()
     .AddSaml2("NIA", opt =>
     {
         // Set up our EntityId, this is our application.
-        //opt.SPOptions.EntityId = new EntityId("http://localhost:5093/Saml2");
         if (builder.Environment.IsDevelopment())
         {
+            //opt.SPOptions.EntityId = new EntityId("http://localhost:5093/Saml2");
             opt.SPOptions.EntityId = new EntityId("https://localhost:7291/Saml2");
         }
         else
         {
-            opt.SPOptions.EntityId = new EntityId("https://msdocs-core-sql-674-g4b8bgf8e5e3h0bh.westeurope-01.azurewebsites.net");
+            opt.SPOptions.EntityId = new EntityId("https://msdocs-core-sql-674-g4b8bgf8e5e3h0bh.westeurope-01.azurewebsites.net/NIA");
         }
 
         // Single logout messages should be signed according to the SAML2 standard, so we need
@@ -101,14 +99,20 @@ builder.Services.AddAuthentication()
                 // The identityprovider's entity id.
                 //new EntityId("https://stubidp.sustainsys.com/Metadata"),
                 new EntityId(
+                    
                     // SusitainSys:
-                    "https://stubidp.sustainsys.com/Metadata"),
-                // NIA testovací:
-                //"https://tnia.identitaobcana.cz/fpsts/FederationMetadata/2007-06/FederationMetadata.xml"),
-                // NIA produkční:
-                // https://nia.identitaobcana.cz/fpsts/FederationMetadata/2007-06/FederationMetadata.xml"),
+                    //"https://stubidp.sustainsys.com/Metadata"),
+                    
+                    // NIA testovací:
+                    //"https://tnia.identitaobcana.cz/fpsts/FederationMetadata/2007-06/FederationMetadata.xml"),
+                    "urn:microsoft:cgg2010:fpsts"),
+                    
+                    // NIA produkční:
+                    // https://nia.identitaobcana.cz/fpsts/FederationMetadata/2007-06/FederationMetadata.xml"),
                 opt.SPOptions)
             {
+                MetadataLocation = "https://tnia.identitaobcana.cz/fpsts/FederationMetadata/2007-06/FederationMetadata.xml",
+
                 // Load config parameters from metadata, using the Entity Id as the metadata address.
                 LoadMetadata = true,
 
@@ -121,6 +125,84 @@ builder.Services.AddAuthentication()
                 //RelayStateUsedAsReturnUrl = false,
                 //WantAuthnRequestsSigned = false, // v produkci ano?
             });
+
+
+
+        
+        opt.Notifications.AuthenticationRequestCreated = (request, identityProvider, dictionary) =>
+        {
+            //request.ExtensionContents
+
+            XNamespace eidas = XNamespace.Get("http://eidas.europa.eu/saml-extensions");
+
+            //new XElement(Saml2Namespaces.Saml2P + "Extensions", (object) this.ExtensionContents);
+
+            request.ExtensionContents.AddRange(
+            [
+                new XElement(eidas + "SPType", "public"),
+                new XElement(eidas + "RequestedAttributes",
+                [
+                    new XElement(eidas + "RequestedAttribute", 
+                        new XAttribute("Name", "http://eidas.europa.eu/attributes/naturalperson/PersonIdentifier"), 
+                        new XAttribute("NameFormat", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"),
+                        new XAttribute("isRequired", true)),
+
+                    new XElement(eidas + "RequestedAttribute", 
+                        new XAttribute("Name", "http://eidas.europa.eu/attributes/naturalperson/CurrentGivenName"), 
+                        new XAttribute("NameFormat", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"),
+                        new XAttribute("isRequired", true)),
+
+                    new XElement(eidas + "RequestedAttribute", 
+                        new XAttribute("Name", "http://eidas.europa.eu/attributes/naturalperson/CurrentFamilyName"), 
+                        new XAttribute("NameFormat", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"),
+                        new XAttribute("isRequired", true)),
+
+                    new XElement(eidas + "RequestedAttribute", 
+                        new XAttribute("Name", "http://www.stork.gov.eu/1.0/eMail"), 
+                        new XAttribute("NameFormat", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"),
+                        new XAttribute("isRequired", true)),
+
+                    new XElement(eidas + "RequestedAttribute", 
+                        new XAttribute("Name", "http://eidas.europa.eu/attributes/naturalperson/DateOfBirth"), 
+                        new XAttribute("NameFormat", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"),
+                        new XAttribute("isRequired", true)),
+
+                    new XElement(eidas + "RequestedAttribute", 
+                        new XAttribute("Name", "http://eidas.europa.eu/attributes/naturalperson/PlaceOfBirth"), 
+                        new XAttribute("NameFormat", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"),
+                        new XAttribute("isRequired", true)),
+
+                    new XElement(eidas + "RequestedAttribute", 
+                        new XAttribute("Name", "http://eidas.europa.eu/attributes/naturalperson/CurrentAddress"), 
+                        new XAttribute("NameFormat", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"),
+                        new XAttribute("isRequired", true))
+                ])
+            ]);
+
+            //// Create the Extensions element
+            //XNamespace saml2p = "urn:oasis:names:tc:SAML:2.0:protocol";
+            //var extensionsElement = new XElement(saml2p + "Extensions");
+
+            //// Add any custom extensions here
+            //// Example: Add a custom element to the Extensions
+            //extensionsElement.Add(new XElement("CustomElement", "CustomValue"));
+
+            //// Add the Extensions element to the request
+            //request.Extensions = extensionsElement;
+        };
+
+        opt.Notifications.AuthenticationRequestXmlCreated = (request, xDocument, saml2BindingType) =>
+        {
+            int x = 1;
+        };
+
+        opt.Notifications.SignInCommandResultCreated = (commandResult, dictionary) =>
+        {
+            int x = 1;
+        };
+
+
+
 
         // Transform claims using a callback/notification. This is the simplest way to transform
         // claims, but there is no way to show UI and there is no access to other services.

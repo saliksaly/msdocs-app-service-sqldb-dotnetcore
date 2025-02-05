@@ -6,10 +6,11 @@ using Microsoft.EntityFrameworkCore;
 using DotNetCoreSqlDb.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using DotNetCoreSqlDb.App.Auth.Entities;
 
 namespace DotNetCoreSqlDb.Data
 {
-    public class MyDatabaseContext : IdentityDbContext<IdentityUser>
+    public class MyDatabaseContext : IdentityDbContext<ApplicationUser>
     {
         public MyDatabaseContext (DbContextOptions<MyDatabaseContext> options)
             : base(options)

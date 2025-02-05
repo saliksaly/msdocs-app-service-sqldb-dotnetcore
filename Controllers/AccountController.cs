@@ -8,19 +8,20 @@ using Sustainsys.Saml2.AspNetCore2;
 using System.Security.Claims;
 using DotNetCoreSqlDb.App.Auth;
 using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
+using DotNetCoreSqlDb.App.Auth.Entities;
 
 namespace DotNetCoreSqlDb.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly SignInManager<IdentityUser> _signInManager;
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly LogInManager _logInManager;
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        public AccountController(SignInManager<IdentityUser> signInManager, UserManager<IdentityUser> userManager)
+        public AccountController(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager)
         {
             _signInManager = signInManager;
             _userManager = userManager;
@@ -139,7 +140,7 @@ namespace DotNetCoreSqlDb.Controllers
             {
                 // User is logged in.
 
-                IdentityUser user = await _userManager.GetUserAsync(User) 
+                ApplicationUser user = await _userManager.GetUserAsync(User) 
                             ?? throw new InvalidOperationException();
 
                 var logins = await _userManager.GetLoginsAsync(user);
@@ -166,7 +167,7 @@ namespace DotNetCoreSqlDb.Controllers
             {
                 // Email address is present in external login claims.
 
-                IdentityUser? user = await _userManager.FindByEmailAsync(emailAddress);
+                ApplicationUser? user = await _userManager.FindByEmailAsync(emailAddress);
 
                 if (user != null)
                 {
@@ -254,7 +255,7 @@ namespace DotNetCoreSqlDb.Controllers
             }
             else
             {
-                IdentityUser user = await CreateUserWithoutEmailAsync(externalLoginInfo);
+                ApplicationUser user = await CreateUserWithoutEmailAsync(externalLoginInfo);
 
                 await _signInManager.SignInAsync(user, isPersistent: false);
 
@@ -266,7 +267,7 @@ namespace DotNetCoreSqlDb.Controllers
             return Redirect(returnUrl);
         }
 
-        private async Task<IdentityUser> CreateUserWithoutEmailAsync(ExternalLoginInfo externalLoginInfo)
+        private async Task<ApplicationUser> CreateUserWithoutEmailAsync(ExternalLoginInfo externalLoginInfo)
         {
             UserInfo userInfo = GetUserInfo(externalLoginInfo);
 
@@ -274,47 +275,52 @@ namespace DotNetCoreSqlDb.Controllers
 
             string emailAddress = $"{userName}@nia.vismo.cz";
 
-            IdentityUser user = await CreateUserWithEmailAsync(emailAddress, externalLoginInfo);
+            ApplicationUser user = await CreateUserWithEmailAsync(emailAddress, externalLoginInfo);
 
             user.UserName = userName;
 
             return user;
         }
 
-        private async Task<IdentityUser> CreateUserWithEmailAsync(string emailAddress, ExternalLoginInfo externalLoginInfo)
+        private async Task<ApplicationUser> CreateUserWithEmailAsync(string emailAddress, ExternalLoginInfo externalLoginInfo)
         {
-            throw new NotImplementedException();
+            var user = new ApplicationUser
+            {
+                UserName = emailAddress,
+                Email = emailAddress,
+                
+                //IsActive = true,
+                //IsEmailConfirmed = isEmailConfirmed,
+                //IsLegalGuardianEmailConfirmed = false,
+                //Roles = new List<UserRole>(),
+                //Is16YearsOld = is16YearsOld,
+                //AbpLanguageId = languageId
+            };
 
-            //var result = await _accountAppService.RegisterSimpleInternal(
-            //    new RegisterSimpleInput { EmailAddress = emailAddress });
+            var identityResult = await _userManager.CreateAsync(user);
 
-            //if (!result.Success)
-            //{
-            //    throw new Exception(result.ErrorMessage);
-            //}
-
-            //User user = await _userManager.GetUserByIdAsync(result.SuccessResult.UserId);
+            if (!identityResult.Succeeded)
+            {
+                throw new Exception(identityResult.Errors.First().Description);
+            }
 
             //user.IsRegisteredViaAA = true;
             //user.AuthenticationSource = externalLoginInfo.LoginProvider;
             //user.IsEmailConfirmed = true;
 
-            //UserInfo userInfo = GetUserInfo(externalLoginInfo);
+            UserInfo userInfo = GetUserInfo(externalLoginInfo);
 
-            //if (userInfo.Name != null)
-            //{
-            //    user.Name = userInfo.Name; 
-            //}
+            if (userInfo.Name != null)
+            {
+                user.Name = userInfo.Name;
+            }
 
-            //if (userInfo.Surname != null)
-            //{
-            //    user.Surname = userInfo.Surname;
-            //}
+            if (userInfo.Surname != null)
+            {
+                user.Surname = userInfo.Surname;
+            }
 
-            //// TODO: ???
-            ////user.SetNormalizedNames();
-
-            //return user;
+            return user;
         }
 
         private string GetUserNameFromUserId(string userId, ExternalLoginInfo externalLoginInfo)
@@ -367,7 +373,7 @@ namespace DotNetCoreSqlDb.Controllers
 
         // -----------------
 
-        private record UserInfo(string Id, string Name, string Surname);
+        private record UserInfo(string Id, string? Name, string? Surname);
 
         public static class CommonClaimTypes // TODO: presun nekam kam to patri
         {
