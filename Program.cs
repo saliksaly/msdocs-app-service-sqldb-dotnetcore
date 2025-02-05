@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Sustainsys.Saml2;
 using Sustainsys.Saml2.Metadata;
+using Sustainsys.Saml2.Saml2P;
 using System.Reflection;
 using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
@@ -49,7 +50,7 @@ builder.Services.AddScoped<UserClaimsPrincipalFactory<ApplicationUser>>();
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddAuthentication()
-    //.AddCookie()
+    .AddCookie()
     .AddSaml2("NIA", opt =>
     {
         // Set up our EntityId, this is our application.
@@ -132,8 +133,23 @@ builder.Services.AddAuthentication()
             });
 
 
+        opt.SPOptions.RequestedAuthnContext = new Saml2RequestedAuthnContext(
+            /*
+              Vyžadovaná úroveň ověření identity
 
-        
+              LOW dovoluje využít NIA jméno+heslo+sms, stejně jako datovou schránku FO nebo identitu zahraničního občana
+              http://eidas.europa.eu/LoA/low
+
+              SUBSTANTIAL pak dovoluje méně variant
+              http://eidas.europa.eu/LoA/substantial
+
+              HIGH dovoluje pouze elektronický občanský průkaz
+              http://eidas.europa.eu/LoA/high
+            */
+            new Uri("http://eidas.europa.eu/LoA/low"),
+            AuthnContextComparisonType.Minimum);
+
+
         opt.Notifications.AuthenticationRequestCreated = (request, identityProvider, dictionary) =>
         {
             //request.ExtensionContents
