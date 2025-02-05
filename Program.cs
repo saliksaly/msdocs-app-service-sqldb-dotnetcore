@@ -1,4 +1,6 @@
-﻿using System.Security.Claims;
+﻿using System.Reflection;
+using System.Security.Claims;
+using System.Security.Cryptography;
 using DotNetCoreSqlDb.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +8,7 @@ using Sustainsys.Saml2;
 using Sustainsys.Saml2.AspNetCore2;
 using Sustainsys.Saml2.Metadata;
 using System.Security.Cryptography.X509Certificates;
+using System.Xml;
 using DotNetCoreSqlDb.Controllers;
 using Microsoft.AspNetCore.Identity;
 
@@ -48,11 +51,49 @@ builder.Services.AddAuthentication()
     {
         // Set up our EntityId, this is our application.
         //opt.SPOptions.EntityId = new EntityId("http://localhost:5093/Saml2");
-        opt.SPOptions.EntityId = new EntityId("https://localhost:7291/Saml2");
+        if (builder.Environment.IsDevelopment())
+        {
+            opt.SPOptions.EntityId = new EntityId("https://localhost:7291/Saml2");
+        }
+        else
+        {
+            opt.SPOptions.EntityId = new EntityId("https://msdocs-core-sql-674-g4b8bgf8e5e3h0bh.westeurope-01.azurewebsites.net");
+        }
 
         // Single logout messages should be signed according to the SAML2 standard, so we need
         // to add a certificate for our app to sign logout messages with to enable logout functionality.
-        opt.SPOptions.ServiceCertificates.Add(new X509Certificate2("app.pfx"));
+        X509Certificate2 certificate;
+        var assembly = Assembly.GetExecutingAssembly();
+        using (Stream? stream = assembly.GetManifestResourceStream("DotNetCoreSqlDb.app.pfx"))
+        {
+            if (stream == null)
+            {
+                // Handle the case where the embedded resource is not found.
+                throw new Exception("Embedded resource 'DotNetCoreSqlDb.app.pfx' not found.");
+            }
+
+            using (var memoryStream = new MemoryStream())
+            {
+                stream.CopyTo(memoryStream);
+                
+                //certificate = new X509Certificate2(memoryStream.ToArray());
+                /*
+                 * Try loading the certificate with the X509KeyStorageFlags option to ensure the private key is available.
+                 * Explanation of the flags:
+                    MachineKeySet → Stores the key in the local machine store instead of the user profile (useful for Azure).
+                    Exportable → Ensures that the private key can be accessed.
+                    PersistKeySet → Ensures the private key remains available after the object is disposed.
+                 */
+                certificate = new X509Certificate2(memoryStream.ToArray(), (string?)null, 
+                    X509KeyStorageFlags.MachineKeySet | 
+                    X509KeyStorageFlags.Exportable | 
+                    X509KeyStorageFlags.PersistKeySet);
+            }
+        }
+        opt.SPOptions.ServiceCertificates.Add(
+            certificate);
+        //opt.SPOptions.ServiceCertificates.Add(
+        //    new X509Certificate2("app.pfx"));
 
         // Add an identity provider.
         opt.IdentityProviders.Add(
