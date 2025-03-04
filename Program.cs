@@ -82,6 +82,7 @@ builder.Services.AddAuthentication()
                 
                 //certificate = new X509Certificate2(memoryStream.ToArray());
                 /*
+                 * Poradil mi ChatGPT :-) https://chatgpt.com/share/67a4a122-8c14-8004-865b-7f323ab0c4a3
                  * Try loading the certificate with the X509KeyStorageFlags option to ensure the private key is available.
                  * Explanation of the flags:
                     MachineKeySet → Stores the key in the local machine store instead of the user profile (useful for Azure).
@@ -107,17 +108,17 @@ builder.Services.AddAuthentication()
                 new EntityId(
                     
                     // SusitainSys:
-                    //"https://stubidp.sustainsys.com/Metadata"),
+                    "https://stubidp.sustainsys.com/Metadata"),
                     
                     // NIA testovací:
                     //"https://tnia.identitaobcana.cz/fpsts/FederationMetadata/2007-06/FederationMetadata.xml"),
-                    "urn:microsoft:cgg2010:fpsts"),
+                    //"urn:microsoft:cgg2010:fpsts"),
                     
                     // NIA produkční:
                     // https://nia.identitaobcana.cz/fpsts/FederationMetadata/2007-06/FederationMetadata.xml"),
                 opt.SPOptions)
             {
-                MetadataLocation = "https://tnia.identitaobcana.cz/fpsts/FederationMetadata/2007-06/FederationMetadata.xml",
+                //MetadataLocation = "https://tnia.identitaobcana.cz/fpsts/FederationMetadata/2007-06/FederationMetadata.xml",
 
                 // Load config parameters from metadata, using the Entity Id as the metadata address.
                 LoadMetadata = true,
